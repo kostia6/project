@@ -12,8 +12,8 @@ def get_real_func():
     return lambda a: 1 / (1 + np.exp(-a))
 
 
-def get_approx_func():
-    return chebyshev_func_sigmoid
+def get_approx_func(max_degree):
+    return Chebyshev(settings.min_value, settings.max_value, max_degree, lambda a: 1 / (1 + np.exp(-a)))
 
 
 def custom_activation_chebyshev_sigmoid(x):

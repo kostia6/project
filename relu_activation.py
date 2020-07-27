@@ -12,8 +12,8 @@ def get_real_func():
     return lambda a: max(a, 0)
 
 
-def get_approx_func():
-    return chebyshev_func_relo
+def get_approx_func(max_degree):
+    return Chebyshev(settings.min_value, settings.max_value, max_degree, lambda a: max(a, 0))
 
 
 def custom_activation_chebyshev_relu(x):
