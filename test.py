@@ -1,6 +1,7 @@
 import random
 import relu_activation
 import sigmoid_activation
+import settings
 
 num_examples = 1000
 max_value = 100
@@ -9,19 +10,20 @@ epsilon = 0.01
 
 def main():
     print("Starting test")
-    test_relu()
-    test_sigmoid()
+    cur_max_degree = settings.max_degree
+    test_relu(cur_max_degree)
+    test_sigmoid(cur_max_degree)
     print("Finished test")
 
 
-def test_sigmoid():
+def test_sigmoid(max_degree):
     test_set = create_test_set(num_examples, max_value)
-    run_test(test_set, sigmoid_activation.get_approx_func(), sigmoid_activation.get_real_func(), "Sigmoid")
+    run_test(test_set, sigmoid_activation.get_approx_func(max_degree), sigmoid_activation.get_real_func(), "Sigmoid")
 
 
-def test_relu():
+def test_relu(max_degree):
     test_set = create_test_set(num_examples, max_value)
-    run_test(test_set, relu_activation.get_approx_func(), relu_activation.get_real_func(), "Relu")
+    run_test(test_set, relu_activation.get_approx_func(max_degree), relu_activation.get_real_func(), "Relu")
 
 
 def run_test(test_set, approx_func, orig_func, test_name):
@@ -34,8 +36,8 @@ def run_test(test_set, approx_func, orig_func, test_name):
         else:
             error[i] = abs(real_result - approx_result) / (real_result+1)
 
-    average_error = 100*(sum(error)/len(error))
-    print("The average error (%s test) is: %.4f%%" % (test_name, average_error))
+    average_error = (sum(error)/len(error))
+    print("The average error (%s test) is: %.4f" % (test_name, average_error))
 
 
 def create_test_set(number_examples, border):
