@@ -2,6 +2,8 @@ import random
 
 max_value = 100
 min_value = -100
+min_degree = 10
+step_degree = 20
 max_degree = 100
 max_degree_polyfit = 30
 num_examples = 1000
