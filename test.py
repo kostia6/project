@@ -59,22 +59,13 @@ def run_test(test_set, approx_func, orig_func, test_name):
     total_error = 0.0
     real_results = [orig_func(x) for x in test_set]
     approx_results = [approx_func(x) for x in test_set]
-    for i in range(0, len(test_set)):
-        real_result = real_results[i]
-        approx_result = approx_results[i]
-        if abs(real_result) > epsilon:
-            error[i] = abs(real_result-approx_result)/real_result
-        else:
-            error[i] = abs(real_result - approx_result) / (real_result+1)
+    errors = [abs(real_results[x] - approx_results[x]) / (real_results[x] + 1) for x in range(len(test_set))]
+    total_error = sum([abs(real_results[x] - approx_results[x]) for x in range(len(test_set))])
 
-        total_error += abs(real_result - approx_result)
-
-    average_error = (sum(error)/len(error))
-    average_error_size = total_error/len(test_set)
-    total_error_divided = total_error/sum(real_results)
-    print("The average error (%s test) is: %.4f ,average error size is: %.4f ,"
-          "total error divided by sum of results %.4f"
-          % (test_name, average_error, average_error_size, total_error_divided))
+    average_error = (sum(errors)/len(errors))
+    average_absolute_error = total_error/len(test_set)
+    print("The average error (%s test) is: %.4f \taverage absolute error: %.4f"
+          % (test_name, average_error, average_absolute_error))
     sbs.set_style("whitegrid", {"axes.grid": True})
     plt.figure()
     plt.grid(b=True)
