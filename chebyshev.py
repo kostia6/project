@@ -20,7 +20,7 @@ class Chebyshev:
 
     def eval(self, x):
         a, b = self.a, self.b
-        assert(a <= x <= b)
+        #assert(a <= x <= b)
         y = (2.0 * x - a - b) * (1.0 / (b - a))
         y2 = 2.0 * y
         (d, dd) = (self.c[-1], 0)
