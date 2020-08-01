@@ -1,10 +1,13 @@
 import relu_activation
+import sigmoid_activation
 import settings
 import operator
 import random
 import threading
 import sigmoid
 import chebyshev
+from keras.utils.generic_utils import get_custom_objects
+from keras.layers import Activation
 
 
 # Create n lists whose sum is arr
@@ -51,8 +54,13 @@ class MultiPartyMediator:
                 self.activation = relu_activation.get_approx_func_polyfit()
                 self.coefficients = self.activation.get_polyfit_coefficients()
                 self.func = sigmoid.eval_polyfit_extern
-            elif polynom_type == "chabyshev":
+            elif polynom_type == "chebyshev":
                 self.activation = relu_activation.get_approx_func(settings.max_degree)
+                self.coefficients = self.activation.get_coefficients()
+                self.func = chebyshev.eval_extern
+        elif activation_type == "Sigmoid":
+            if polynom_type == "chebyshev":
+                self.activation = sigmoid_activation.get_approx_func_chebyshev(settings.max_degree)
                 self.coefficients = self.activation.get_coefficients()
                 self.func = chebyshev.eval_extern
 
@@ -77,15 +85,67 @@ class MultiPartyMediator:
         return res
 
 
+relu_chab = MultiPartyMediator("Relu", "chebyshev")
+sigmoid_chab = MultiPartyMediator("Sigmoid", "chebyshev")
+
+
+def _apply_activation_model(model, active):
+    print(model.get_config())
+    for layer in model.layers:
+        if hasattr(layer, 'activation'):
+            layer.activation = sigmoid
+
+    # might need parameters:https://stackoverflow.com/questions/43030721/cant-change-activations-in-existing-keras-model
+    model.compile()
+    print(model.get_config())
+
+
+def relu_cheb_mediator(x):
+    return relu_chab.start(x)
+
+
+def sigmoid_cheb_mediator(x):
+    return sigmoid_chab.start(x)
+
+
+def register_activations():
+    get_custom_objects().update({'relu_cheb': Activation(relu_cheb_mediator)})
+    get_custom_objects().update({'sigmoid_cheb': Activation(relu_cheb_mediator)})
+
+
+def get_relu_activation():
+    return Activation(relu_cheb_mediator)
+
+
+def get_sigmoid_activation():
+    return Activation(relu_cheb_mediator)
+
+
+def replace_activation_model(model, activation_name):
+    if activation_name == "Relu":
+        _apply_activation_model(model, get_relu_activation())
+    elif activation_name == "Sigmoid":
+        _apply_activation_model(model, get_sigmoid_activation())
+    else:
+        print("Unknown activation option: " + activation_name)
+
+
 if __name__ == "__main__":
+    register_activations()
     print("test polyfit")
     dummy = relu_activation.get_approx_func_polyfit()
     print(dummy(10))
     mediator = MultiPartyMediator()
     print(mediator.start(10))
 
-    print("test chabyshev")
+    print("test chebyshev Relu")
     dummy = relu_activation.get_approx_func(settings.max_degree)
     print(dummy(10))
-    mediator = MultiPartyMediator("Relu", "chabyshev")
+    mediator = MultiPartyMediator("Relu", "chebyshev")
+    print(mediator.start(10))
+
+    print("test chebyshev Sigmoid")
+    dummy = sigmoid_activation.get_approx_func_chebyshev(settings.max_degree)
+    print(dummy(10))
+    mediator = MultiPartyMediator("Sigmoid", "chebyshev")
     print(mediator.start(10))
