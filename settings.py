@@ -7,6 +7,7 @@ step_degree = 20
 max_degree = 100
 max_degree_polyfit = 30
 num_examples = 1000
+num_threads = 10
 
 
 def create_test_set(number_examples, border):

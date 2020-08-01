@@ -2,6 +2,10 @@ import numpy
 import settings
 
 
+def eval_polyfit_extern(coefs_polyfit, x):
+    return numpy.polyval(coefs_polyfit, x)
+
+
 class Sigmoid:
 
     def __call__(self, x):
@@ -34,7 +38,10 @@ class Sigmoid:
                 self.coef_taylor3_integ = numpy.polyint(p)
 
     def eval_polyfit(self, x):
-        return numpy.polyval(self.coefs_polyfit, x)
+        return eval_polyfit_extern(self.coefs_polyfit, x)
+
+    def get_polyfit_coefficients(self):
+        return self.coefs_polyfit
 
     def eval(self, x):
         if x > 10:

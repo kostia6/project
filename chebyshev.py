@@ -1,4 +1,16 @@
 import math
+import settings
+
+
+def eval_extern(coefs, x):
+    a, b = settings.min_value, settings.max_value
+    # assert(a <= x <= b)
+    y = (2.0 * x - a - b) * (1.0 / (b - a))
+    y2 = 2.0 * y
+    (d, dd) = (coefs[-1], 0)
+    for cj in coefs[-2:0:-1]:
+        (d, dd) = (y2 * d - dd + cj, d)
+    return y * d - dd + 0.5 * coefs[0]
 
 
 class Chebyshev:
@@ -27,3 +39,6 @@ class Chebyshev:
         for cj in self.c[-2:0:-1]:
             (d, dd) = (y2 * d - dd + cj, d)
         return y * d - dd + 0.5 * self.c[0]
+
+    def get_coefficients(self):
+        return self.c

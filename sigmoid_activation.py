@@ -10,6 +10,10 @@ chebyshev_func_sigmoid = Chebyshev(settings.min_value, settings.max_value, setti
 taylor_func_sigmoid = Sigmoid(lambda a: 1 / (1 + np.exp(-a)))
 
 
+def get_taylor_func():
+    return taylor_func_sigmoid
+
+
 def get_derivative():
     return lambda a: get_real_func_sigmoid(a)*(1-get_real_func_sigmoid(a))
 
