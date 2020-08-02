@@ -92,11 +92,12 @@ sigmoid_chab = MultiPartyMediator("Sigmoid", "chebyshev")
 def _apply_activation_model(model, active):
     print(model.get_config())
     for layer in model.layers:
-        if hasattr(layer, 'activation'):
-            layer.activation = sigmoid
+        if isinstance(layer, Activation) and hasattr(layer, 'activation'):
+            layer.name = layer.name + "_custom"
+            layer.activation = active
 
     # might need parameters:https://stackoverflow.com/questions/43030721/cant-change-activations-in-existing-keras-model
-    model.compile()
+    model.compile(loss="categorical_crossentropy", optimizer='adam')
     print(model.get_config())
 
 
@@ -110,22 +111,22 @@ def sigmoid_cheb_mediator(x):
 
 def register_activations():
     get_custom_objects().update({'relu_cheb': Activation(relu_cheb_mediator)})
-    get_custom_objects().update({'sigmoid_cheb': Activation(relu_cheb_mediator)})
+    get_custom_objects().update({'sigmoid_cheb': Activation(sigmoid_cheb_mediator)})
 
 
 def get_relu_activation():
-    return Activation(relu_cheb_mediator)
+    return Activation(relu_cheb_mediator, name="custom_activation_relu")
 
 
 def get_sigmoid_activation():
-    return Activation(relu_cheb_mediator)
+    return Activation(sigmoid_cheb_mediator, name="custom_activation_sigmoid")
 
 
 def replace_activation_model(model, activation_name):
-    if activation_name == "Relu":
-        _apply_activation_model(model, get_relu_activation())
-    elif activation_name == "Sigmoid":
-        _apply_activation_model(model, get_sigmoid_activation())
+    if activation_name == "relu":
+        _apply_activation_model(model, relu_cheb_mediator)
+    elif activation_name == "sigmoid":
+        _apply_activation_model(model, sigmoid_cheb_mediator)
     else:
         print("Unknown activation option: " + activation_name)
 
