@@ -6,8 +6,11 @@ import random
 import threading
 import sigmoid
 import chebyshev
+import tempfile
+import os
 from keras.utils.generic_utils import get_custom_objects
 from keras.layers import Activation
+from keras.models import load_model
 
 
 # Create n lists whose sum is arr
@@ -89,16 +92,26 @@ relu_chab = MultiPartyMediator("Relu", "chebyshev")
 sigmoid_chab = MultiPartyMediator("Sigmoid", "chebyshev")
 
 
-def _apply_activation_model(model, active):
+def _apply_activation_model(model, active, active_name, custom_objects=None):
     print(model.get_config())
     for layer in model.layers:
         if isinstance(layer, Activation) and hasattr(layer, 'activation'):
-            layer.name = layer.name + "_custom"
-            layer.activation = active
+            if active_name in layer.output.name:
+                layer.name = layer.name + "_custom"
+                layer.activation = active
 
     # might need parameters:https://stackoverflow.com/questions/43030721/cant-change-activations-in-existing-keras-model
-    model.compile(loss="categorical_crossentropy", optimizer='adam')
+    #model.compile(loss="categorical_crossentropy", optimizer='adam')
     print(model.get_config())
+
+    model_path = os.path.join(tempfile.gettempdir(), "temp_name.h5")
+    try:
+        model.save(model_path)
+        return load_model(model_path, custom_objects=custom_objects)
+    finally:
+        os.remove(model_path)
+
+    return model
 
 
 def relu_cheb_mediator(x):
@@ -124,11 +137,14 @@ def get_sigmoid_activation():
 
 def replace_activation_model(model, activation_name):
     if activation_name == "relu":
-        _apply_activation_model(model, relu_cheb_mediator)
+        return _apply_activation_model(model, relu_cheb_mediator, "Relu", custom_objects=
+        {"relu_cheb_mediator": relu_cheb_mediator})
     elif activation_name == "sigmoid":
-        _apply_activation_model(model, sigmoid_cheb_mediator)
+        return _apply_activation_model(model, sigmoid_cheb_mediator, "Sigmoid", custom_objects=
+        {"sigmoid_cheb_mediator": sigmoid_cheb_mediator})
     else:
         print("Unknown activation option: " + activation_name)
+        return model
 
 
 if __name__ == "__main__":
