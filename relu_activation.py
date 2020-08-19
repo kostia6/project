@@ -23,8 +23,8 @@ def get_approx_func_polyfit():
     return Sigmoid(lambda a: max(a, 0), False, True)
 
 
-def get_approx_func(max_degree):
-    return Chebyshev(settings.min_value, settings.max_value, max_degree, lambda a: max(a, 0))
+def get_approx_func(max_degree, min_value=settings.min_value, max_value=settings.max_value):
+    return Chebyshev(min_value, max_value, max_degree, lambda a: max(a, 0))
 
 
 def custom_activation_chebyshev_relu(x):

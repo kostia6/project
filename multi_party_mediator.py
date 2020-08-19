@@ -4,13 +4,19 @@ import settings
 import operator
 import random
 import threading
+import queue
 import sigmoid
 import chebyshev
 import tempfile
 import os
+import time
+import sys
+import atexit
+import tensorflow as tf
 from keras.utils.generic_utils import get_custom_objects
 from keras.layers import Activation
 from keras.models import load_model
+from keras import backend as K
 
 
 # Create n lists whose sum is arr
@@ -30,28 +36,62 @@ def divide_coefficients(arr, n):
     return res
 
 
+class Job:
+    def __init__(self, x):
+        self.x = x
+        self.res = 0
+        self.ready = False
+
+    def set_res(self, res):
+        self.res = res
+        self.ready = True
+
+    def get_res(self):
+        return self.res
+
+    def is_ready(self):
+        return self.ready
+
+    def get_x(self):
+        return self.x
+
+
 class MyThread (threading.Thread):
-    def __init__(self, threadID, name, coefs, func, x):
+    def __init__(self, thread_id, name, coefs, func, finish_queue):
         threading.Thread.__init__(self)
-        self.threadID = threadID
+        self.threadID = thread_id
         self.name = name
         self.coefs = coefs
         self.func = func
-        self.x = x
         self.res = 0
+        self.jobs = queue.Queue()
+        self.finish_queue = finish_queue
+        self.exit = False
 
     def run(self):
-        self.res = self.func(self.coefs, self.x)
+        while not self.exit:
+            try:
+                job = self.jobs.get(True, 1)
+                job.set_res(self.func(self.coefs, job.get_x()))
+                self.finish_queue.put(job)
+            except queue.Empty:
+                pass
 
-    def get_result(self):
-        return self.res
+    def stop_thread(self):
+        self.exit = True
+
+    def add_job(self, job):
+        self.jobs.put(job)
 
 
 class MultiPartyMediator:
 
     def __init__(self, activation_type="Relu", polynom_type="polyfit"):
+        self.counter = 0
+        self.bytes = 0
         self.activation_type = activation_type
         self.polynom_type = polynom_type
+        self.ready_jobs = queue.Queue()
         if activation_type == "Relu":
             if polynom_type == "polyfit":
                 self.activation = relu_activation.get_approx_func_polyfit()
@@ -70,22 +110,77 @@ class MultiPartyMediator:
 
         # create n threads and assign them coefficients
         self.coefs = divide_coefficients(self.coefficients, settings.num_threads)
+        self.threads = []
+        self.threads_created = False
+
+    def create_threads(self):
+        if self.threads_created:
+            return
+
+        self.threads_created = True
         self.threads = [0] * settings.num_threads
+        if len(self.threads) > 1:
+            for i in range(0, settings.num_threads):
+                self.threads[i] = MyThread(i, "Thread", self.coefs[i], self.func, self.ready_jobs)
+                self.threads[i].start()
+
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        if len(self.threads) > 1:
+            for i in range(0, len(self.threads)):
+                self.threads[i].stop_thread()
+                self.threads[i].join()
+
+        self.threads = []
 
     # Calculate value of x
     def start(self, x):
+        #f = open("C:/Users/kost/PycharmProjects/projectGit/print_output.txt", 'w')
+        #sys.stdout = f  # Change the standard output to the file we created.
+        #return K.relu(x)
+        self.create_threads()
+        start = time.time()
+        self.counter += 1
         res = 0
-        for i in range(0, settings.num_threads):
-            self.threads[i] = MyThread(i, "Thread", self.coefs[i], self.func, x)
-            self.threads[i].start()
+        if len(self.threads) > 1:
+            jobs = []
+            for i in range(0, settings.num_threads):
+                job = Job(x)
+                self.bytes += sys.getsizeof(job)
+                jobs.append(job)
+                self.threads[i].add_job(job)
 
-        for t in self.threads:
-            t.join()
+            finished = False
+            ready = 0
+            while not finished:
+                ready_job = self.ready_jobs.get()
+                if ready_job in jobs:
+                    ready += 1
+                    self.bytes += sys.getsizeof(ready_job)
+                else:
+                    self.ready_jobs.put(ready_job)
 
-        for t in self.threads:
-            res += t.get_result()
+                if ready == len(jobs):
+                    finished = True
+
+            for i in range(0, len(jobs)):
+                res += jobs[i].get_res()
+
+        else:
+            res += self.func(self.coefficients, x)
+
+        end = time.time()
+        #tf.print(x)
+        #print("Finished  tensor calculation in ", end - start, " seconds")
 
         return res
+
+    def get_counter(self):
+        return self.counter
+
+    def get_bytes(self):
+        return self.bytes
 
 
 relu_chab = MultiPartyMediator("Relu", "chebyshev")
@@ -112,6 +207,19 @@ def _apply_activation_model(model, active, active_name, custom_objects=None):
         os.remove(model_path)
 
     return model
+
+
+def get_counter():
+    return relu_chab.get_counter() + sigmoid_chab.get_counter()
+
+
+def get_bytes():
+    return relu_chab.get_bytes() + sigmoid_chab.get_bytes()
+
+
+def cleanup():
+    sigmoid_chab.cleanup()
+    relu_chab.cleanup()
 
 
 def relu_cheb_mediator(x):
