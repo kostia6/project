@@ -239,6 +239,10 @@ def get_relu_activation():
     return Activation(relu_cheb_mediator, name="custom_activation_relu")
 
 
+def get_relu_activation_numpy():
+    return relu_cheb_mediator
+
+
 def get_sigmoid_activation():
     return Activation(sigmoid_cheb_mediator, name="custom_activation_sigmoid")
 
