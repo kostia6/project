@@ -2,6 +2,7 @@ from tensorflow.keras.models import load_model
 import keras
 import numpy as np
 import multi_party_mediator
+import tensorflow as tf
 
 def read_weights(model):
     res = {}
@@ -9,11 +10,15 @@ def read_weights(model):
     for layer in model.layers:
         weights = layer.get_weights()
         if weights:
-            res[layer_num] = {'weights': weights, 'name': layer.name}
+            res[layer_num] = {'weights': weights, 'name': layer.name, 'layer': layer}
 
         layer_num += 1
 
     return res
+
+
+def relu(x):
+   return np.maximum(0, x)
 
 
 def softmax_activation(x):
@@ -21,25 +26,38 @@ def softmax_activation(x):
 
 
 def calc_batch_normalization(input, weights):
-    # TODO
-    output = np.zeros((input.shape[0] * input.shape[1]), dtype=np.uint8)
+    flat_input = input.flatten()
+    epsilon = tf.keras.backend.epsilon()
+    #output = np.zeros((input.shape[0] * input.shape[1]), dtype=np.uint8)
+
+    # calculate (batch - self.moving_mean) / (self.moving_var + epsilon) * gamma + beta
+    # where 0 - gamma, 1 - beta, 2 - moving_mean, 3 - moving_var
+    # see https://keras.io/api/layers/normalization_layers/batch_normalization/
+    output = (flat_input - weights[2]) / (weights[3] + epsilon) * weights[0] + weights[1]
     return output
 
 
 def calc_layer(input_val, layer_weights, activation_function):
     weights = layer_weights[0]
     bias = layer_weights[1]
-    output = np.zeros((bias.shape[0]), dtype=np.float32)
     activation_function = multi_party_mediator.get_relu_activation_numpy() if activation_function == 'relu' else \
         softmax_activation
 
-    # apply weights TODO
+    # apply weights
+    #output = np.dot(input_val.transpose(), weights)
+    output = weights.transpose() @ input_val
+
+    # check validity for debug
+    first_column = weights[:, 0]
+    first_out_value = np.dot(first_column, input_val)
+    assert(first_out_value == output[0])
 
     # apply bias
     output += bias
 
     # apply activation
-    output = activation_function(output)
+    #output = activation_function(output)
+    output = relu(output)
 
     return output
 
@@ -49,6 +67,8 @@ def test_one(model_weights, input, expected_output):
     for layer_num in model_weights:
         layer_weights = model_weights[layer_num]['weights']
         layer_name = model_weights[layer_num]['name']
+        layer = model_weights[layer_num]['layer']
+        current_sum = np.sum(current_layer_input)
         if layer_name == 'batch_normalization':
             current_layer_input = calc_batch_normalization(current_layer_input, layer_weights)
         elif layer_name.startswith('hidden'):
