@@ -12,6 +12,9 @@ def read_weights(model):
         if weights:
             res[layer_num] = {'weights': weights, 'name': layer.name, 'layer': layer}
 
+        if layer.name == 'batch_normalization':
+            res[layer_num]['epsilon'] = layer.epsilon
+
         layer_num += 1
 
     return res
@@ -25,19 +28,19 @@ def softmax_activation(x):
     return np.exp(x) / sum(np.exp(x))
 
 
-def calc_batch_normalization(input, weights):
+def calc_batch_normalization(input, weights, epsilon):
     flat_input = input.flatten()
-    epsilon = tf.keras.backend.epsilon()
     #output = np.zeros((input.shape[0] * input.shape[1]), dtype=np.uint8)
 
     # calculate (batch - self.moving_mean) / (self.moving_var + epsilon) * gamma + beta
     # where 0 - gamma, 1 - beta, 2 - moving_mean, 3 - moving_var
     # see https://keras.io/api/layers/normalization_layers/batch_normalization/
-    output = (flat_input - weights[2]) / (weights[3] + epsilon) * weights[0] + weights[1]
+    output = (flat_input - weights[2]) / ((weights[3] + epsilon) * weights[0] + weights[1])
     return output
 
 
 def calc_layer(input_val, layer_weights, activation_function):
+    input_val = input_val.flatten()
     weights = layer_weights[0]
     bias = layer_weights[1]
     activation_function = multi_party_mediator.get_relu_activation_numpy() if activation_function == 'relu' else \
@@ -70,7 +73,7 @@ def test_one(model_weights, input, expected_output):
         layer = model_weights[layer_num]['layer']
         current_sum = np.sum(current_layer_input)
         if layer_name == 'batch_normalization':
-            current_layer_input = calc_batch_normalization(current_layer_input, layer_weights)
+            current_layer_input = calc_batch_normalization(current_layer_input, layer_weights, model_weights[layer_num]['epsilon'])
         elif layer_name.startswith('hidden'):
             current_layer_input = calc_layer(current_layer_input, layer_weights, "relu")
         elif layer_name == 'output':
@@ -96,6 +99,7 @@ def start_test(model_weights):
 if __name__ == "__main__":
     print("Started test")
     model = load_model('trained_model.h5')
+    #model = load_model('trained_model_no_batch.h5')
     weights_map = read_weights(model)
     start_test(weights_map)
     print("Finished test")
