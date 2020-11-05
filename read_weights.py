@@ -27,6 +27,12 @@ def relu(x):
 def softmax_activation(x):
     return np.exp(x) / sum(np.exp(x))
 
+def calc_batch_normalization2(input, mean, variance, offset, scale, variance_epsilon):
+    # see: https://github.com/tensorflow/tensorflow/blob/e500cde7086258b516323d3c62b22853aedde207/tensorflow/python/ops/nn_impl.py#L1569
+    inv = 1.0/np.sqrt(variance + variance_epsilon)
+    inv *= scale
+
+    return input * inv + offset - mean * inv
 
 def calc_batch_normalization(input, weights, epsilon):
     flat_input = input.flatten()
@@ -35,7 +41,8 @@ def calc_batch_normalization(input, weights, epsilon):
     # calculate (batch - self.moving_mean) / (self.moving_var + epsilon) * gamma + beta
     # where 0 - gamma, 1 - beta, 2 - moving_mean, 3 - moving_var
     # see https://keras.io/api/layers/normalization_layers/batch_normalization/
-    output = (flat_input - weights[2]) / ((weights[3] + epsilon) * weights[0] + weights[1])
+    #output = (flat_input - weights[2]) / ((weights[3] + epsilon) * weights[0] + weights[1])
+    output = calc_batch_normalization2(flat_input, weights[2], weights[3], weights[1], weights[0], epsilon)
     return output
 
 
@@ -53,14 +60,14 @@ def calc_layer(input_val, layer_weights, activation_function):
     # check validity for debug
     first_column = weights[:, 0]
     first_out_value = np.dot(first_column, input_val)
-    assert(first_out_value == output[0])
+    #assert(first_out_value == output[0])
 
     # apply bias
     output += bias
 
     # apply activation
-    #output = activation_function(output)
-    output = relu(output)
+    output = activation_function(output)
+    #output = relu(output)
 
     return output
 
