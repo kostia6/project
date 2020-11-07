@@ -2,6 +2,7 @@ from tensorflow.keras.models import load_model
 import keras
 import numpy as np
 import multi_party_mediator
+import sys
 import tensorflow as tf
 
 def read_weights(model):
@@ -50,7 +51,11 @@ def calc_layer(input_val, layer_weights, activation_function):
     input_val = input_val.flatten()
     weights = layer_weights[0]
     bias = layer_weights[1]
-    activation_function = multi_party_mediator.get_relu_activation_numpy() if activation_function == 'relu' else \
+    max_degree = None
+    if len(sys.argv) > 1:
+        max_degree = int(sys.argv[1])
+
+    activation_function = multi_party_mediator.get_relu_activation_numpy(max_degree) if activation_function == 'relu' else \
         softmax_activation
 
     # apply weights

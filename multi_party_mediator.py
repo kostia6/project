@@ -239,8 +239,16 @@ def get_relu_activation():
     return Activation(relu_cheb_mediator, name="custom_activation_relu")
 
 
-def get_relu_activation_numpy():
-    return relu_cheb_mediator
+def get_relu_activation_numpy(max_degree=settings.max_degree):
+    if not max_degree:
+        max_degree = settings.max_degree
+    if not get_relu_activation_numpy.activation:
+        get_relu_activation_numpy.activation = relu_activation.get_approx_func(max_degree)
+    return get_relu_activation_numpy.activation
+    #return relu_cheb_mediator
+
+
+get_relu_activation_numpy.activation = None
 
 
 def get_sigmoid_activation():
