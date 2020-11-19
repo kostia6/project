@@ -1,8 +1,10 @@
 import math
 import settings
+from sympy import *
 
 
 def eval_extern(coefs, x):
+    #print("eval_extern")
     a, b = settings.min_value, settings.max_value
     # assert(a <= x <= b)
     y = (2.0 * x - a - b) * (1.0 / (b - a))
@@ -31,6 +33,7 @@ class Chebyshev:
                              for k in range(n)]) for j in range(n)]
 
     def eval(self, x):
+        #print("eval")
         a, b = self.a, self.b
         #assert(a <= x <= b)
         y = (2.0 * x - a - b) * (1.0 / (b - a))
@@ -42,3 +45,15 @@ class Chebyshev:
 
     def get_coefficients(self):
         return self.c
+
+    def print_str(self):
+        y_str = "(2.0 * x -(" + str(self.a) + ")-(" + str(self.b) + "))*(1.0/(" + str(self.b) + "-(" + str(self.a) + ")))"
+        y2_str = "2.0 * (" + y_str + ")"
+        d = str(self.c[-1])
+        dd = "0"
+        for cj in self.c[-2:0:-1]:
+            (d, dd) = ("(" + y2_str + " * (" + d + ")-(" + dd + ")+(" + str(cj)+")", d)
+            #d = simplify(d)
+            #dd = simplify(dd)
+
+        return y_str + "*" + d + "-" + dd + "+0.5 *" + str(self.c[0])

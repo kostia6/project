@@ -35,7 +35,9 @@ def calc_batch_normalization2(input, mean, variance, offset, scale, variance_eps
 
     return input * inv + offset - mean * inv
 
-def calc_batch_normalization(input, weights, epsilon):
+def calc_batch_normalization(input, weights, epsilon, is_debug):
+    if is_debug:
+        return None
     flat_input = input.flatten()
     #output = np.zeros((input.shape[0] * input.shape[1]), dtype=np.uint8)
 
@@ -47,7 +49,9 @@ def calc_batch_normalization(input, weights, epsilon):
     return output
 
 
-def calc_layer(input_val, layer_weights, activation_function):
+def calc_layer(input_val, layer_weights, activation_function, is_debug):
+    if is_debug:
+        return None
     input_val = input_val.flatten()
     weights = layer_weights[0]
     bias = layer_weights[1]
@@ -77,21 +81,29 @@ def calc_layer(input_val, layer_weights, activation_function):
     return output
 
 
-def test_one(model_weights, input, expected_output):
+def test_one(model_weights, input, expected_output, is_debug=False):
     current_layer_input = input
+    if is_debug:
+        max_degree = None
+        if len(sys.argv) > 1:
+            max_degree = int(sys.argv[1])
+        activation_function = multi_party_mediator.get_relu_activation_numpy(max_degree)
+        activation_str = activation_function.print_str()
+        print(activation_str)
+
     for layer_num in model_weights:
         layer_weights = model_weights[layer_num]['weights']
         layer_name = model_weights[layer_num]['name']
         layer = model_weights[layer_num]['layer']
         current_sum = np.sum(current_layer_input)
         if layer_name == 'batch_normalization':
-            current_layer_input = calc_batch_normalization(current_layer_input, layer_weights, model_weights[layer_num]['epsilon'])
+            current_layer_input = calc_batch_normalization(current_layer_input, layer_weights, model_weights[layer_num]['epsilon'], is_debug)
         elif layer_name.startswith('hidden'):
-            current_layer_input = calc_layer(current_layer_input, layer_weights, "relu")
+            current_layer_input = calc_layer(current_layer_input, layer_weights, "relu", is_debug)
         elif layer_name == 'output':
-            current_layer_input = calc_layer(current_layer_input, layer_weights, "softmax")
+            current_layer_input = calc_layer(current_layer_input, layer_weights, "softmax", is_debug)
 
-    return current_layer_input.argmax() == expected_output
+    return current_layer_input.argmax() == expected_output if not is_debug else None
 
 
 def start_test(model_weights):
@@ -110,8 +122,12 @@ def start_test(model_weights):
 
 if __name__ == "__main__":
     print("Started test")
+    is_debug = True if '--debug' in sys.argv else False
     model = load_model('trained_model.h5')
     #model = load_model('trained_model_no_batch.h5')
     weights_map = read_weights(model)
-    start_test(weights_map)
+    if not is_debug:
+        start_test(weights_map)
+    else:
+        test_one(weights_map, None, None, True)
     print("Finished test")
