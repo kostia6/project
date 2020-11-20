@@ -58,7 +58,7 @@ class Chebyshev:
         d = str(self.c[-1])
         dd = "0"
         for cj in self.c[-2:0:-1]:
-            # d_sim = simplify(d).__str__()
-            (d, dd) = ("(" + y2_str_sim.__str__() + " * (" + d + ")-(" + dd + ")+(" + str(cj)+")", d)
+            d = simplify(d).__str__()
+            (d, dd) = ("(" + y2_str_sim.__str__() + " * (" + d + ")-(" + dd + ")+(" + str(cj)+"))", d)
 
         return y_str + "*" + d + "-" + dd + "+0.5 *" + str(self.c[0])
