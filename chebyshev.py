@@ -47,13 +47,18 @@ class Chebyshev:
         return self.c
 
     def print_str(self):
-        y_str = "(2.0 * x -(" + str(self.a) + ")-(" + str(self.b) + "))*(1.0/(" + str(self.b) + "-(" + str(self.a) + ")))"
+        difab = self.b - self.a
+        sumab = self.a + self.b
+        x = symbols('x')
+        y_str = "(2.0 * x - (" + str(sumab) + "))*(1.0/(" + str(difab) + "))"
+        #y_str = "(2.0 * x -(" + str(self.a) + ")-(" + str(self.b) + "))*(1.0/(" + str(self.b) + "-(" + str(self.a) + ")))"
         y2_str = "2.0 * (" + y_str + ")"
+
+        y2_str_sim = simplify(y2_str)
         d = str(self.c[-1])
         dd = "0"
         for cj in self.c[-2:0:-1]:
-            (d, dd) = ("(" + y2_str + " * (" + d + ")-(" + dd + ")+(" + str(cj)+")", d)
-            #d = simplify(d)
-            #dd = simplify(dd)
+            # d_sim = simplify(d).__str__()
+            (d, dd) = ("(" + y2_str_sim.__str__() + " * (" + d + ")-(" + dd + ")+(" + str(cj)+")", d)
 
         return y_str + "*" + d + "-" + dd + "+0.5 *" + str(self.c[0])
