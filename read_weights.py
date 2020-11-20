@@ -3,6 +3,7 @@ import keras
 import numpy as np
 import multi_party_mediator
 import sys
+import time
 import tensorflow as tf
 
 def read_weights(model):
@@ -90,6 +91,7 @@ def test_one(model_weights, input, expected_output, is_debug=False):
         activation_function = multi_party_mediator.get_relu_activation_numpy(max_degree)
         activation_str = activation_function.print_str()
         print(activation_str)
+        print(len(activation_str))
 
     for layer_num in model_weights:
         layer_weights = model_weights[layer_num]['weights']
@@ -122,6 +124,7 @@ def start_test(model_weights):
 
 if __name__ == "__main__":
     print("Started test")
+    start = time.time()
     is_debug = True if '--debug' in sys.argv else False
     model = load_model('trained_model.h5')
     #model = load_model('trained_model_no_batch.h5')
@@ -130,4 +133,6 @@ if __name__ == "__main__":
         start_test(weights_map)
     else:
         test_one(weights_map, None, None, True)
-    print("Finished test")
+
+    end = time.time()
+    print("Finished test in {:.0f} seconds".format(end - start))
