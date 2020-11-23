@@ -61,4 +61,4 @@ class Chebyshev:
             d = simplify(d).__str__()
             (d, dd) = ("(" + y2_str_sim.__str__() + " * (" + d + ")-(" + dd + ")+(" + str(cj)+"))", d)
 
-        return y_str + "*" + d + "-" + dd + "+0.5 *" + str(self.c[0])
+        return y_str + "*" + d + "-(" + dd + ")+0.5 *" + str(self.c[0])
