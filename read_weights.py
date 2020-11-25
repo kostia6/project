@@ -4,6 +4,7 @@ import numpy as np
 import multi_party_mediator
 import sys
 import time
+import sympy
 import tensorflow as tf
 
 def read_weights(model):
@@ -50,12 +51,34 @@ def calc_batch_normalization(input, weights, epsilon, is_debug):
     return output
 
 
-def calc_layer(input_val, layer_weights, activation_function, is_debug):
-    if is_debug:
-        return None
-    input_val = input_val.flatten()
+def calc_layer(input_val, layer_weights, activation_function, is_debug, layer_name):
     weights = layer_weights[0]
     bias = layer_weights[1]
+    if is_debug:
+        print("Printing layer: " + layer_name)
+        num_neurons_layer = len(layer_weights[0][0])
+        weights = weights.transpose()
+        values = []
+        # apply weights
+        for i in range(0, num_neurons_layer):
+            current_weights = weights[i]
+            current_value = ""
+
+            for c in range(0, len(current_weights)):
+                current_value += str(current_weights[c]) + " * " + "x" + str(c) + " + "
+            current_value = current_value[:-2]
+            values.append(current_value)
+
+        # apply bias
+        for i in range(0, num_neurons_layer):
+            values[i] = "(" + values[i] + ")" + "+" + str(bias[i])
+
+        # apply activation ???
+        for i in range(0, num_neurons_layer):
+            print_str = "c" + str(i) + "=" + values[i]
+            print(print_str)
+        return None
+    input_val = input_val.flatten()
     max_degree = None
     if len(sys.argv) > 1:
         max_degree = int(sys.argv[1])
@@ -91,7 +114,12 @@ def test_one(model_weights, input, expected_output, is_debug=False):
         activation_function = multi_party_mediator.get_relu_activation_numpy(max_degree)
         activation_str = activation_function.print_str()
         print(activation_str)
-        print(len(activation_str))
+        #print(len(activation_str))
+
+        #x = sympy.symbols('x')
+        #exp = sympy.simplify(activation_str)
+        #print(exp.evalf(subs={x: 1.0}, n=100))
+        #print(activation_function(1.0))
 
     for layer_num in model_weights:
         layer_weights = model_weights[layer_num]['weights']
@@ -101,9 +129,9 @@ def test_one(model_weights, input, expected_output, is_debug=False):
         if layer_name == 'batch_normalization':
             current_layer_input = calc_batch_normalization(current_layer_input, layer_weights, model_weights[layer_num]['epsilon'], is_debug)
         elif layer_name.startswith('hidden'):
-            current_layer_input = calc_layer(current_layer_input, layer_weights, "relu", is_debug)
+            current_layer_input = calc_layer(current_layer_input, layer_weights, "relu", is_debug, layer_name)
         elif layer_name == 'output':
-            current_layer_input = calc_layer(current_layer_input, layer_weights, "softmax", is_debug)
+            current_layer_input = calc_layer(current_layer_input, layer_weights, "softmax", is_debug, layer_name)
 
     return current_layer_input.argmax() == expected_output if not is_debug else None
 
