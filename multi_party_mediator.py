@@ -56,7 +56,7 @@ class Job:
         return self.x
 
 
-class MyThread (threading.Thread):
+class SingleThread (threading.Thread):
     def __init__(self, thread_id, name, coefs, func, finish_queue):
         threading.Thread.__init__(self)
         self.threadID = thread_id
@@ -96,16 +96,16 @@ class MultiPartyMediator:
             if polynom_type == "polyfit":
                 self.activation = relu_activation.get_approx_func_polyfit()
                 self.coefficients = self.activation.get_polyfit_coefficients()
-                self.func = sigmoid.eval_polyfit_extern
+                self.evaluation_func = sigmoid.eval_polyfit_extern
             elif polynom_type == "chebyshev":
                 self.activation = relu_activation.get_approx_func(settings.max_degree)
                 self.coefficients = self.activation.get_coefficients()
-                self.func = chebyshev.eval_extern
+                self.evaluation_func = chebyshev.eval_extern
         elif activation_type == "Sigmoid":
             if polynom_type == "chebyshev":
                 self.activation = sigmoid_activation.get_approx_func_chebyshev(settings.max_degree)
                 self.coefficients = self.activation.get_coefficients()
-                self.func = chebyshev.eval_extern
+                self.evaluation_func = chebyshev.eval_extern
 
 
         # create n threads and assign them coefficients
@@ -121,7 +121,7 @@ class MultiPartyMediator:
         self.threads = [0] * settings.num_threads
         if len(self.threads) > 1:
             for i in range(0, settings.num_threads):
-                self.threads[i] = MyThread(i, "Thread", self.coefs[i], self.func, self.ready_jobs)
+                self.threads[i] = SingleThread(i, "Thread", self.coefs[i], self.evaluation_func, self.ready_jobs)
                 self.threads[i].start()
 
         atexit.register(self.cleanup)
@@ -168,7 +168,7 @@ class MultiPartyMediator:
                 res += jobs[i].get_res()
 
         else:
-            res += self.func(self.coefficients, x)
+            res += self.evaluation_func(self.coefficients, x)
 
         end = time.time()
         #tf.print(x)
@@ -188,7 +188,7 @@ sigmoid_chab = MultiPartyMediator("Sigmoid", "chebyshev")
 
 
 def _apply_activation_model(model, active, active_name, custom_objects=None):
-    print(model.get_config())
+    #print(model.get_config())
     for layer in model.layers:
         if isinstance(layer, Activation) and hasattr(layer, 'activation'):
             if active_name in layer.output.name:
@@ -197,7 +197,7 @@ def _apply_activation_model(model, active, active_name, custom_objects=None):
 
     # might need parameters:https://stackoverflow.com/questions/43030721/cant-change-activations-in-existing-keras-model
     #model.compile(loss="categorical_crossentropy", optimizer='adam')
-    print(model.get_config())
+    #print(model.get_config())
 
     model_path = os.path.join(tempfile.gettempdir(), "temp_name.h5")
     try:
@@ -257,6 +257,8 @@ def get_sigmoid_activation():
 
 def replace_activation_model(model, activation_name):
     if activation_name == "relu":
+        global relu_chab
+        relu_chab = MultiPartyMediator("Relu", "chebyshev")
         return _apply_activation_model(model, relu_cheb_mediator, "Relu", custom_objects=
         {"relu_cheb_mediator": relu_cheb_mediator})
     elif activation_name == "sigmoid":

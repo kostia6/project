@@ -34,6 +34,10 @@ def get_approx_func_chebyshev(max_degree):
     return Chebyshev(settings.min_value, settings.max_value, max_degree, lambda a: 1 / (1 + np.exp(-a)))
 
 
+def get_approx_func_polyfit():
+    return Sigmoid(lambda a: 1 / (1 + np.exp(-a)), False, True)
+
+
 def custom_activation_chebyshev_sigmoid(x):
     return chebyshev_func_sigmoid.eval(x)
 
